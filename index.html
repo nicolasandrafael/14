@@ -78,32 +78,16 @@
   }
   #player p { color: var(--muted); text-align: center; }
 
-  #add {
+  #soon {
     text-align: center;
     border: 1px solid var(--line);
     padding: 64px 24px;
   }
-  #add h2 {
+  #soon h2 {
     font-size: .95rem; font-weight: 200; letter-spacing: .4em;
     text-transform: uppercase; margin: 0 0 10px; padding-left: .4em;
   }
-  #add p { margin: 0 0 32px; font-size: .8rem; letter-spacing: .2em; }
-  #add label {
-    display: inline-block; cursor: pointer;
-    border: 1px solid var(--text); padding: 14px 32px;
-    font-size: .8rem; letter-spacing: .3em; text-transform: uppercase;
-    transition: background .2s, color .2s;
-  }
-  #add label:hover, #add input:focus-visible + span { background: var(--text); color: #000; }
-  #add input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-  #add.drag { border-color: var(--text); }
-  #swap {
-    display: none; margin: 18px auto 0; background: none; border: 0;
-    color: var(--muted); font: inherit; font-size: .7rem; letter-spacing: .3em;
-    text-transform: uppercase; cursor: pointer;
-  }
-  #swap.show { display: block; }
-  #swap:hover { color: var(--text); }
+  #soon p { margin: 0; font-size: .8rem; letter-spacing: .2em; }
 
   :focus-visible { outline: 1px solid #fff; outline-offset: 4px; }
   @media (prefers-reduced-motion: reduce) { .digits.wrong { animation: none; } }
@@ -122,18 +106,19 @@
 </main>
 
 <main id="player" class="hidden">
-  <!-- Put your video file in the same folder and name it video.mp4 (or change the name below) -->
-  <video id="vid" controls playsinline preload="metadata">
-    <source id="src" src="video.mp4" type="video/mp4">
-  </video>
+  <!--
+    HOW TO ADD YOUR VIDEO ON GITHUB
+    1. In the repo, click "Add file" > "Upload files".
+    2. Upload your video and name it video.mp4 (or video.webm / video.mov).
+       To use another name, change VIDEO_FILES in the script below.
+    3. Commit. The site updates by itself in a minute or two.
+  -->
+  <video id="vid" class="hidden" controls playsinline preload="metadata"></video>
 
-  <section id="add" class="hidden">
-    <h2>Add your video</h2>
-    <p>Choose a video file or drop it here</p>
-    <label><input type="file" id="file" accept="video/*"><span>Choose video</span></label>
+  <section id="soon" class="hidden">
+    <h2>Video coming soon</h2>
+    <p>Check back later</p>
   </section>
-
-  <button id="swap" type="button">Choose a different video</button>
 </main>
 
 <script>
@@ -179,44 +164,26 @@
     });
   });
 
-  /* Adding a video */
+  /* The video: the first of these files found in the repo is played */
+  var VIDEO_FILES = ["video.mp4", "video.webm", "video.mov"];
   var vid = document.getElementById("vid");
-  var src = document.getElementById("src");
-  var add = document.getElementById("add");
-  var file = document.getElementById("file");
-  var swap = document.getElementById("swap");
-  var objectUrl = null;
+  var soon = document.getElementById("soon");
 
-  // If video.mp4 isn't there, offer the file picker instead of a dead player
-  src.addEventListener("error", function () {
-    vid.classList.add("hidden");
-    add.classList.remove("hidden");
-  });
-
-  function load(f) {
-    if (!f || f.type.indexOf("video/") !== 0) return;
-    if (objectUrl) URL.revokeObjectURL(objectUrl);
-    objectUrl = URL.createObjectURL(f);
-    vid.src = objectUrl;
+  function tryVideo(i) {
+    if (i >= VIDEO_FILES.length) {
+      vid.classList.add("hidden");
+      soon.classList.remove("hidden");
+      return;
+    }
+    vid.onerror = function () { tryVideo(i + 1); };
+    vid.onloadedmetadata = function () {
+      soon.classList.add("hidden");
+      vid.classList.remove("hidden");
+    };
+    vid.src = VIDEO_FILES[i];
     vid.load();
-    add.classList.add("hidden");
-    vid.classList.remove("hidden");
-    swap.classList.add("show");
-    vid.play().catch(function () {});
   }
-
-  file.addEventListener("change", function () { load(file.files[0]); });
-  swap.addEventListener("click", function () { file.click(); });
-  ["dragenter", "dragover"].forEach(function (ev) {
-    document.addEventListener(ev, function (e) { e.preventDefault(); add.classList.add("drag"); });
-  });
-  ["dragleave", "drop"].forEach(function (ev) {
-    document.addEventListener(ev, function (e) { e.preventDefault(); add.classList.remove("drag"); });
-  });
-
-  document.addEventListener("drop", function (e) {
-    if (!player.classList.contains("hidden")) load(e.dataTransfer.files[0]);
-  });
+  tryVideo(0);
 
   try { if (sessionStorage.getItem("unlocked") === "1") unlock(); } catch (e) {}
 </script>
