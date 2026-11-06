@@ -1,0 +1,228 @@
+Source: https://claude.ai/chat/7724c6f4-92a7-4c5b-a05a-fffe876112d4 → Files panel → Index artifact → Code view (latest version, 3rd Claude reply "You can now add a video from the page itself"). Single file in chat. Last line is 223 (`</html>`). Captured verbatim across three viewport positions of the code panel; gaps filled from overlapping captures.
+
+```
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Enter code</title>
+<style>
+  :root {
+    --bg: #000;
+    --text: #fff;
+    --muted: #8a8a8a;
+    --line: #5a5a5a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: radial-gradient(ellipse at 50% 40%, #1a1a1a 0%, #000 70%);
+    color: var(--text);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: env(safe-area-inset-top, 0) 20px env(safe-area-inset-bottom, 0);
+  }
+  .hidden { display: none !important; }
+
+  /* Gate */
+  #gate { text-align: center; width: 100%; max-width: 360px; }
+  #gate h1 {
+    font-size: 1.05rem;
+    font-weight: 200;
+    letter-spacing: .5em;
+    text-transform: uppercase;
+    margin: 0 0 14px;
+    padding-left: .5em; /* balances trailing letter-spacing */
+  }
+  #gate p {
+    margin: 0 0 56px;
+    color: var(--muted);
+    font-size: .8rem;
+    letter-spacing: .3em;
+    padding-left: .3em;
+  }
+  .digits { display: flex; gap: 28px; justify-content: center; }
+  .digits input {
+    width: 72px; height: 110px;
+    font: 200 4.2rem/1 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    text-align: center;
+    color: var(--text);
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+    outline: none;
+    caret-color: var(--text);
+    transition: border-color .2s;
+  }
+  .digits input:focus { border-bottom-color: var(--text); }
+  .digits.wrong input { border-bottom-color: #fff; }
+  .digits.wrong { animation: flicker .4s steps(2, end); }
+  #msg {
+    min-height: 1.4em; margin-top: 36px;
+    color: var(--muted); font-size: .75rem;
+    letter-spacing: .3em; text-transform: uppercase; padding-left: .3em;
+  }
+  @keyframes flicker {
+    0%, 100% { opacity: 1; } 25% { opacity: .2; } 50% { opacity: 1; } 75% { opacity: .2; }
+  }
+
+  /* Video */
+  #player { width: 100%; max-width: 1000px; }
+  #player video {
+    width: 100%; max-height: 85vh;
+    background: #000; display: block;
+    /* Uncomment for a black-and-white video too:
+       filter: grayscale(1); */
+  }
+  #player p { color: var(--muted); text-align: center; }
+
+  #add {
+    text-align: center;
+    border: 1px solid var(--line);
+    padding: 64px 24px;
+  }
+  #add h2 {
+    font-size: .95rem; font-weight: 200; letter-spacing: .4em;
+    text-transform: uppercase; margin: 0 0 10px; padding-left: .4em;
+  }
+  #add p { margin: 0 0 32px; font-size: .8rem; letter-spacing: .2em; }
+  #add label {
+    display: inline-block; cursor: pointer;
+    border: 1px solid var(--text); padding: 14px 32px;
+    font-size: .8rem; letter-spacing: .3em; text-transform: uppercase;
+    transition: background .2s, color .2s;
+  }
+  #add label:hover, #add input:focus-visible + span { background: var(--text); color: #000; }
+  #add input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  #add.drag { border-color: var(--text); }
+  #swap {
+    display: none; margin: 18px auto 0; background: none; border: 0;
+    color: var(--muted); font: inherit; font-size: .7rem; letter-spacing: .3em;
+    text-transform: uppercase; cursor: pointer;
+  }
+  #swap.show { display: block; }
+  #swap:hover { color: var(--text); }
+
+  :focus-visible { outline: 1px solid #fff; outline-offset: 4px; }
+  @media (prefers-reduced-motion: reduce) { .digits.wrong { animation: none; } }
+</style>
+</head>
+<body>
+
+<main id="gate">
+  <h1>Enter the code</h1>
+  <p>two digits</p>
+  <div class="digits" id="digits">
+    <input inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="First digit" autofocus>
+    <input inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Second digit">
+  </div>
+  <div id="msg" role="alert"></div>
+</main>
+
+<main id="player" class="hidden">
+  <!-- Put your video file in the same folder and name it video.mp4 (or change the name below) -->
+  <video id="vid" controls playsinline preload="metadata">
+    <source id="src" src="video.mp4" type="video/mp4">
+  </video>
+
+  <section id="add" class="hidden">
+    <h2>Add your video</h2>
+    <p>Choose a video file or drop it here</p>
+    <label><input type="file" id="file" accept="video/*"><span>Choose video</span></label>
+  </section>
+
+  <button id="swap" type="button">Choose a different video</button>
+</main>
+
+<script>
+  var CODE = "14";
+  var gate = document.getElementById("gate");
+  var player = document.getElementById("player");
+  var wrap = document.getElementById("digits");
+  var boxes = wrap.querySelectorAll("input");
+  var msg = document.getElementById("msg");
+
+  function unlock() {
+    gate.classList.add("hidden");
+    player.classList.remove("hidden");
+    document.title = "Video";
+    try { sessionStorage.setItem("unlocked", "1"); } catch (e) {}
+  }
+
+  function check() {
+    var entered = boxes[0].value + boxes[1].value;
+    if (entered.length < 2) return;
+    if (entered === CODE) {
+      unlock();
+    } else {
+      msg.textContent = "Wrong code";
+      wrap.classList.add("wrong");
+      setTimeout(function () {
+        wrap.classList.remove("wrong");
+        boxes[0].value = ""; boxes[1].value = "";
+        boxes[0].focus();
+      }, 450);
+    }
+  }
+
+  boxes.forEach(function (box, i) {
+    box.addEventListener("input", function () {
+      box.value = box.value.replace(/\D/g, "").slice(0, 1);
+      msg.textContent = "";
+      if (box.value && i === 0) boxes[1].focus();
+      check();
+    });
+    box.addEventListener("keydown", function (e) {
+      if (e.key === "Backspace" && !box.value && i === 1) boxes[0].focus();
+    });
+  });
+
+  /* Adding a video */
+  var vid = document.getElementById("vid");
+  var src = document.getElementById("src");
+  var add = document.getElementById("add");
+  var file = document.getElementById("file");
+  var swap = document.getElementById("swap");
+  var objectUrl = null;
+
+  // If video.mp4 isn't there, offer the file picker instead of a dead player
+  src.addEventListener("error", function () {
+    vid.classList.add("hidden");
+    add.classList.remove("hidden");
+  });
+
+  function load(f) {
+    if (!f || f.type.indexOf("video/") !== 0) return;
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    objectUrl = URL.createObjectURL(f);
+    vid.src = objectUrl;
+    vid.load();
+    add.classList.add("hidden");
+    vid.classList.remove("hidden");
+    swap.classList.add("show");
+    vid.play().catch(function () {});
+  }
+
+  file.addEventListener("change", function () { load(file.files[0]); });
+  swap.addEventListener("click", function () { file.click(); });
+  ["dragenter", "dragover"].forEach(function (ev) {
+    document.addEventListener(ev, function (e) { e.preventDefault(); add.classList.add("drag"); });
+  });
+  ["dragleave", "drop"].forEach(function (ev) {
+    document.addEventListener(ev, function (e) { e.preventDefault(); add.classList.remove("drag"); });
+  });
+
+  document.addEventListener("drop", function (e) {
+    if (!player.classList.contains("hidden")) load(e.dataTransfer.files[0]);
+  });
+
+  try { if (sessionStorage.getItem("unlocked") === "1") unlock(); } catch (e) {}
+</script>
+</body>
+</html>
+```
